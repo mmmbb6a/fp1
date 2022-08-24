@@ -1,67 +1,125 @@
 package com.tkroman.kpi.y2022.l1
-
-enum Optional[+A]:
-  case None
-  case Some(x: A)
-
-def fold[A, B](a: Optional[A], z: B, f: (B, A) => B) =
-  a match {
-    case Optional.None => z
-    case Optional.Some(x) => f(z, x)
-  }
-
-enum Tree[+A]:
-  case Branch(l: Tree[A], r: Tree[A])
-  case Leaf(a: A)
-
-enum Set[+A]:
-  case Empty
-  case NonEmpty private (a: A, rest: Set[A])
-object Set:
-  def makeSet[A](xs: A*): Set[A] = ???
-
-case class Bag[A] private (private val map: Map[A, Int])
-object Bag:
-  def makeBag[A](xs: A*): Bag[A] = ???
-
-// https://en.wikipedia.org/wiki/Binary_search_tree
-case class BSTree private (l: Option[BSTree], r: Option[BSTree], v: Int)
-object BSTree:
-  def makeBst(xs: Int*): BSTree = ???
+import scala.annotation.tailrec
+import scala.collection.mutable.StringBuilder
+import List.*
+import scala.collection.mutable
 
 enum List[+A]:
   case Nil
   case Cons(hd: A, tl: List[A])
 
-enum IntOpCode:
-  case Add, Mul
+  override def toString: String =
+    @scala.annotation.tailrec
+    def go(sb: mutable.StringBuilder, as: List[A]): String = {
+      as match {
+        case Nil => sb.append(']').result
+        case Cons(hd, Nil) => sb.append(hd).append(']').result
+        case Cons(hd, tl) => go(sb.append(hd).append(", "), tl)
+      }
+    }
 
-enum BoolOpCode:
-  case And, Or
+    go(new mutable.StringBuilder("["), this)
 
-enum IntExpr:
-  case Lit(n: Int)
-  case Op(opCode: IntOpCode, l: IntExpr, r: IntExpr)
+object List:
+  def empty[A]: List[A] = Nil
+  def apply[A](xs: A*): List[A] = of(xs *)
+  def of[A](xs: A*): List[A] =
+    xs.foldRight(Nil: List[A]) { case (x, acc) => Cons(x, acc) }
 
-enum BoolExpr:
-  case Lit(b: Boolean)
-  case Op(opCode: BoolOpCode, l: BoolExpr, r: BoolExpr)
 
-enum Nat:
-  case Zero
-  case Succ(n: Nat)
 
-case class Rational(num: Int, denom: Int)
 
-enum Compared:
-  case Lt, Gt, Eq // < > =
 
-enum RecEntry[A]:
-  case Flat(a: A)
-  case Nested(as: List[RecEntry[A]])
+@tailrec
+def reverse[A](x: List[A], y: List[A]=Nil): List[A] = {
+  x match
+    case Nil => y
+    case Cons(hd, tl) => reverse(tl, Cons(hd, y))
+}
 
-// NOTE: do not use this to demo the results.
-// Use unit-tests instead
+@tailrec
+def find[A, B](list: List[A], f: A => B, element: B): Boolean = {
+  list match
+    case Nil => false
+    case Cons(hd, tl) =>
+      if (element.equals(f(hd))) true
+      else
+        find(tl, f, element)
+}
+
+
+def distinctBy[A, B](xs: List[A], f: A => B): List[A] = {
+  @tailrec
+  def go[A, B](list: List[A], f: A => B, y: List[A]): List[A] =
+    list match
+      case Nil => reverse(y)
+      case Cons(hd, tl) =>
+        if (find(tl, f, f(hd)))
+          go(tl, f, y)
+        else go(tl, f, Cons(hd, y))
+
+  go(xs, f, Nil)
+}
+
+
+
+
+def compareMin[B] (x: B, y: B)(implicit ord: Ordering[B]): Boolean = {
+  if (ord.compare(x, y) >= 0)
+    false
+  else true
+}
+
+def minBy[A, B](xs: List[A], f: A => B)(implicit ord: Ordering[B]): Option[A]= {
+  @tailrec
+  def go(x: List[A], f: A => B, min: B, resultMin: Option[A]): Option[A]=
+    x match
+      case Nil => resultMin
+      case Cons(hd, tl) =>
+        if( compareMin(min, f(hd)) )
+          go(tl, f, min, resultMin)
+        else go(tl, f, f(hd), Some(hd))
+
+  xs match
+    case Nil => None
+    case Cons(hd, tl) => go(tl, f, f(hd), Some(hd))
+}
+
+
+
+
+def splitAt[A](xs: List[A], n: Int): (List[A], List[A])= {
+  @tailrec
+  def go[A](x: List[A], n: Int, i: Int, y: List[A]): (List[A], List[A]) =
+    x match
+      case Nil => (x, Nil)
+      case Cons(hd, Nil) => (x,y)
+      case Cons(hd, tl) =>
+        if (i==n)
+          (reverse(y), x)
+        else
+          go(tl, n, i+1, Cons(hd, y))
+
+  go(xs, n, 0, Nil)
+}
+
+
+
+
+
+def dropLastWhile[A](xs: List[A], f: A => Boolean): List[A]={
+  @tailrec
+  def go[A](x: List [A], f: A => Boolean, y: List[A]): List[A]=
+    x match
+      case Nil => reverse(y)
+      case Cons(hd, tl) =>
+        if (f(hd))
+          reverse(y)
+        else go(tl, f, Cons(hd, y))
+
+  go(xs, f, Nil)
+}
+
 @main def run() =
   println("Hello")
 
